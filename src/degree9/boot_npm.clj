@@ -2,9 +2,19 @@
   (:require [boot.core :as boot]
             [degree9.boot-exec :as ex]
             [clojure.java.io :as io]
-            [cheshire.core :refer :all]))
+            [cheshire.core :refer :all])
+  (:import (org.apache.commons.exec OS)))
 
 ;; Helper Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- ex
+  [& args]
+  (if-not (OS/isFamilyWindows)
+    (apply ex/exec args)
+    (let [[& {:keys [process arguments] :as args}] args]
+      (apply ex/exec (mapcat seq (assoc args
+                                        :process "cmd"
+                                        :arguments (into ["/c" process] arguments)))))))
 
 ;;https://github.com/metosin/ring-swagger/blob/1c5b8ab7ad7a5735624986bbb6b288aaf168d407/src/ring/swagger/common.clj#L53-L73
 (defn- deep-merge
@@ -57,7 +67,7 @@
                     global    (conj "--global"))]
     (comp
       (ex/properties :contents npmjson :directory tmp-path :file "package.json" :include include?)
-      (ex/exec :process "npm" :arguments args :directory tmp-path :local "bin" :include true))))
+      (ex :process "npm" :arguments args :directory tmp-path :local "bin" :include true))))
 
 (boot/deftask exec
   "Exec wrapper for npm modules"
@@ -78,4 +88,4 @@
         tmp-path  (.getAbsolutePath tmp)]
     (comp
       (npm :install install :cache-key cache-key :global global)
-      (ex/exec :process process :arguments args :cache-key cache-key :local (str "node_modules/" module "/bin") :include true))))
+      (ex :process process :arguments args :cache-key cache-key :local (str "node_modules/" module "/bin") :include true))))
