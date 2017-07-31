@@ -2,9 +2,15 @@
   (:require [boot.core :as boot]
             [degree9.boot-exec :as ex]
             [clojure.java.io :as io]
-            [cheshire.core :refer :all]))
+            [cheshire.core :refer :all])
+  (:import (org.apache.commons.exec OS)))
 
 ;; Helper Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:private npm-process
+  (if (OS/isFamilyWindows) 
+    "npm.cmd"
+    "npm"))
 
 ;;https://github.com/metosin/ring-swagger/blob/1c5b8ab7ad7a5735624986bbb6b288aaf168d407/src/ring/swagger/common.clj#L53-L73
 (defn- deep-merge
@@ -57,7 +63,7 @@
                     global    (conj "--global"))]
     (comp
       (ex/properties :contents npmjson :directory tmp-path :file "package.json" :include include?)
-      (ex/exec :process "npm" :arguments args :directory tmp-path :local "bin" :include true))))
+      (ex/exec :process npm-process :arguments args :directory tmp-path :local "bin" :include true))))
 
 (boot/deftask exec
   "Exec wrapper for npm modules"
